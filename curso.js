@@ -1,81 +1,51 @@
-//lO PRIMERO ES IMPORTAR LAS LIBRERIAS 
-const express = require ('express');
-const{Pool}= require ('pg');
-const cors = require ('cors');
+const { Pool } = require('pg');
 
-//Inicializar la app
-const app= express();
-
-// middlewere para que nos devuelva la info en formato JSON
-app.use (express.json());
-
-////middelware para poder aceptar solicitudes externas 
-app.use(cors());
-
-//vamos a hacer la conexion a la base de datos
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'cursos_bd',
-    password: '12345678',
-    port: 5432
+  user: 'postgres',
+  host: 'localhost',
+  database: 'gestion_cursos',
+  password: 'tu_contraseña',
+  port: 5432,
 });
 
-//vamos a hacer las rutas del API
+const getCursos = async () => {
+  const { rows } = await pool.query('SELECT * FROM cursos');
+  return rows;
+};
 
-//Aviso de funcionamiento correcto de API
+const getCursoById = async (id) => {
+  const { rows } = await pool.query('SELECT * FROM cursos WHERE id_curso = $1', [id]);
+  return rows[0];
+};
 
-app.get('/', async(req,res)=> {
-    try {
-        res.json({ mensaje: 'API funcionando correctamente!' });
-    } catch (error) {
-        
-    }
-});
+const crearCurso = async (curso) => {
+  const { nombre, descripcion, creditos, id_profesor } = curso;
+  const { rows } = await pool.query(
+    'INSERT INTO cursos (nombre, descripcion, creditos, id_profesor) VALUES ($1, $2, $3, $4) RETURNING *',
+    [nombre, descripcion, creditos, id_profesor]
+  );
+  return rows[0];
+};
 
+const actualizarCurso = async (id, curso) => {
+  const { nombre, descripcion, creditos, id_profesor } = curso;
+  const { rows } = await pool.query(
+    'UPDATE cursos SET nombre = $1, descripcion = $2, creditos = $3, id_profesor = $4 WHERE id_curso = $5 RETURNING *',
+    [nombre, descripcion, creditos, id_profesor, id]
+  );
+  return rows[0];
+};
 
-app.get('/robloxianos', async(req,res) => {
-    try {
-        const result= await pool.query('select * from robloxianos');
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({error: error.message});
-    }
-});
+const eliminarCurso = async (id) => {
+  const { rows } = await pool.query('DELETE FROM cursos WHERE id_curso = $1 RETURNING *', [id]);
+  return rows[0];
+};
 
-
-app.get('/juegos', async(req,res) => {
-    try {
-        const result= await pool.query('select * from juegos');
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({error: error.message});
-    }
-});
-
-
-app.get('/items', async(req,res) => {
-    try {
-        const result= await pool.query('select * from items');
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({error: error.message});
-    }
-});
-
-
-app.get('/compras', async(req,res) => {
-    try {
-        const result= await pool.query('select * from compras');
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({error: error.message});
-    }
-});
-
-
-//para probar el API vamos a rrancar el servidor 
-app.listen(3000, () =>{
-    console.log("Servidor corriendo en la ruta http://localhost:3000");
-});
+module.exports = {
+  getCursos,
+  getCursoById,
+  crearCurso,
+  actualizarCurso,
+  eliminarCurso,
+};
 
